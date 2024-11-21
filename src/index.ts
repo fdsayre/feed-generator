@@ -1,41 +1,44 @@
-import dotenv from 'dotenv'
-import FeedGenerator from './server'
+import dotenv from "dotenv";
+dotenv.config();
+console.log("BLUESKY_HANDLE:", process.env.BLUESKY_HANDLE);
+console.log("BLUESKY_PASSWORD:", process.env.BLUESKY_PASSWORD);
 
-const run = async () => {
-  dotenv.config()
-  const hostname = maybeStr(process.env.FEEDGEN_HOSTNAME) ?? 'example.com'
-  const serviceDid =
-    maybeStr(process.env.FEEDGEN_SERVICE_DID) ?? `did:web:${hostname}`
-  const server = FeedGenerator.create({
-    port: maybeInt(process.env.FEEDGEN_PORT) ?? 3000,
-    listenhost: maybeStr(process.env.FEEDGEN_LISTENHOST) ?? 'localhost',
-    sqliteLocation: maybeStr(process.env.FEEDGEN_SQLITE_LOCATION) ?? ':memory:',
-    subscriptionEndpoint:
-      maybeStr(process.env.FEEDGEN_SUBSCRIPTION_ENDPOINT) ??
-      'wss://bsky.network',
-    publisherDid:
-      maybeStr(process.env.FEEDGEN_PUBLISHER_DID) ?? 'did:example:alice',
-    subscriptionReconnectDelay:
-      maybeInt(process.env.FEEDGEN_SUBSCRIPTION_RECONNECT_DELAY) ?? 3000,
-    hostname,
-    serviceDid,
-  })
-  await server.start()
-  console.log(
-    `🤖 running feed generator at http://${server.cfg.listenhost}:${server.cfg.port}`,
-  )
-}
+import { FeedGenerator } from "./server";
 
-const maybeStr = (val?: string) => {
-  if (!val) return undefined
-  return val
-}
 
-const maybeInt = (val?: string) => {
-  if (!val) return undefined
-  const int = parseInt(val, 10)
-  if (isNaN(int)) return undefined
-  return int
-}
+const main = async () => {
+    const hostname = process.env.FEEDGEN_HOSTNAME || "example.com";
+    const blueskyHandle = process.env.BLUESKY_HANDLE;
+    const blueskyPassword = process.env.BLUESKY_PASSWORD;
 
-run()
+    if (!blueskyHandle || !blueskyPassword) {
+        console.error(
+            "❌ Missing required environment variables: BLUESKY_HANDLE and BLUESKY_PASSWORD"
+        );
+        process.exit(1);
+    }
+
+    const server = FeedGenerator.create({
+        port: parseInt(process.env.FEEDGEN_PORT || "3000", 10),
+        listenhost: process.env.FEEDGEN_LISTENHOST || "localhost",
+        hostname,
+        sqliteLocation: process.env.FEEDGEN_SQLITE_LOCATION || ":memory:",
+        subscriptionEndpoint:
+            process.env.FEEDGEN_SUBSCRIPTION_ENDPOINT || "wss://bsky.network",
+        serviceDid: process.env.FEEDGEN_SERVICE_DID || `did:web:${hostname}`,
+        publisherDid: process.env.FEEDGEN_PUBLISHER_DID || "did:example:alice",
+        subscriptionReconnectDelay: parseInt(
+            process.env.FEEDGEN_SUBSCRIPTION_RECONNECT_DELAY || "3000",
+            10
+        ),
+        blueskyHandle,
+        blueskyPassword,
+    });
+
+    await server.start();
+    console.log(
+        `🤖 Running feed generator at http://${server.cfg.listenhost}:${server.cfg.port}`
+    );
+};
+
+main().catch((err) => console.error("❌ Server failed to start:", err));

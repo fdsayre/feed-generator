@@ -16,15 +16,4 @@ export type Config = {
   serviceDid: string
   publisherDid: string
   subscriptionReconnectDelay: number
-  blueskyHandle: string; // Add this
-  blueskyPassword: string; // Add this
 }
-
-// export interface Config {
-//   port: number;
-//   hostname: string;
-//   sqliteLocation: string;
-//   subscriptionEndpoint: string;
-//   blueskyHandle: string; // Add this
-//   blueskyPassword: string; // Add this
-// }

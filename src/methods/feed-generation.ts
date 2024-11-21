@@ -1,38 +1,100 @@
-import { InvalidRequestError } from '@atproto/xrpc-server'
-import { Server } from '../lexicon'
-import { AppContext } from '../config'
-import algos from '../algos'
-import { validateAuth } from '../auth'
-import { AtUri } from '@atproto/syntax'
+// // import { AppContext } from '../config';
+// // import { createCustomFeed } from '../feeds'; // Import custom feed logic
+// // import { Server } from '../lexicon';
+// // import AtpAgent from '@atproto/api';
 
-export default function (server: Server, ctx: AppContext) {
-  server.app.bsky.feed.getFeedSkeleton(async ({ params, req }) => {
-    const feedUri = new AtUri(params.feed)
-    const algo = algos[feedUri.rkey]
-    if (
-      feedUri.hostname !== ctx.cfg.publisherDid ||
-      feedUri.collection !== 'app.bsky.feed.generator' ||
-      !algo
-    ) {
-      throw new InvalidRequestError(
-        'Unsupported algorithm',
-        'UnsupportedAlgorithm',
-      )
-    }
-    /**
-     * Example of how to check auth if giving user-specific results:
-     *
-     * const requesterDid = await validateAuth(
-     *   req,
-     *   ctx.cfg.serviceDid,
-     *   ctx.didResolver,
-     * )
-     */
+// // export default function feedGeneration(server: Server, ctx: AppContext) {
+// //     server.xrpc.method('app.bsky.feed.getFeedSkeleton', async ({ params }) => {
+// //         // Initialize ATP Agent
+// //         const client = new AtpAgent({ service: 'https://bsky.social' });
+// //         await client.login({
+// //             identifier: ctx.cfg.blueskyHandle!,
+// //             password: ctx.cfg.blueskyPassword!,
+// //         });
 
-    const body = await algo(ctx, params)
-    return {
-      encoding: 'application/json',
-      body: body,
-    }
-  })
+// //         // Generate the custom feed
+// //         const posts = await createCustomFeed(client);
+
+// //         // Return the feed skeleton in the correct format
+// //         return {
+// //             encoding: 'application/json',
+// //             body: {
+// //                 feed: posts.map((post) => ({
+// //                     post: post.uri,
+// //                 })),
+// //             },
+// //         };
+// //     });
+// // }
+
+// import { AppContext } from '../config';
+// import { createCustomFeed } from '../feeds'; // Import custom feed logic
+// import { Server } from '../lexicon';
+// import AtpAgent from '@atproto/api';
+
+// export default function feedGeneration(server: Server, ctx: AppContext) {
+//     server.xrpc.method('app.bsky.feed.getFeedSkeleton', async ({ params }) => {
+//         // Validate the `feed` parameter
+//         const expectedFeedId = 'feed:example:custom'; // Replace with your actual feed ID
+//         if (params.feed !== expectedFeedId) {
+//             throw new Error(`Unsupported feed identifier: ${params.feed}`);
+//         }
+
+//         // Initialize ATP Agent
+//         const client = new AtpAgent({ service: 'https://bsky.social' });
+//         await client.login({
+//             identifier: ctx.cfg.blueskyHandle!,
+//             password: ctx.cfg.blueskyPassword!,
+//         });
+
+//         // Generate the custom feed
+//         const posts = await createCustomFeed(client);
+
+//         // Return the feed skeleton in the correct format
+//         return {
+//             encoding: 'application/json',
+//             body: {
+//                 feed: posts.map((post) => ({
+//                     post: post.uri,
+//                 })),
+//             },
+//         };
+//     });
+// }
+
+import { AppContext } from '../config';
+import { createCustomFeed } from '../feeds'; // Import custom feed logic
+import { Server } from '../lexicon';
+import AtpAgent from '@atproto/api';
+
+export default function feedGeneration(server: Server, ctx: AppContext) {
+    server.xrpc.method('app.bsky.feed.getFeedSkeleton', async ({ params }) => {
+        // Define the expected feed identifier as a valid AT URI
+        const expectedFeedId = `at://${ctx.cfg.serviceDid}/app.bsky.feed.generator/custom`;
+
+        // Validate the `feed` parameter
+        if (params.feed !== expectedFeedId) {
+            throw new Error(`feed must be a valid at-uri: expected ${expectedFeedId}`);
+        }
+
+        // Initialize ATP Agent
+        const client = new AtpAgent({ service: 'https://bsky.social' });
+        await client.login({
+            identifier: ctx.cfg.blueskyHandle!,
+            password: ctx.cfg.blueskyPassword!,
+        });
+
+        // Generate the custom feed
+        const posts = await createCustomFeed(client);
+
+        // Return the feed skeleton in the correct format
+        return {
+            encoding: 'application/json',
+            body: {
+                feed: posts.map((post) => ({
+                    post: post.uri,
+                })),
+            },
+        };
+    });
 }

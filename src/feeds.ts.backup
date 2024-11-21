@@ -1,0 +1,118 @@
+// import AtpAgent from '@atproto/api';
+
+// export const createCustomFeed = async (client: AtpAgent): Promise<void> => {
+//     // Validate session
+//     const session = client.session;
+//     if (!session) {
+//         throw new Error('Session is not initialized. Please log in first.');
+//     }
+
+//     const actor = session.did;
+
+//     // Fetch the current user's follows
+//     const followsResponse = await client.api.app.bsky.graph.getFollows({
+//         actor,
+//     });
+
+//     const follows = followsResponse.data.follows || [];
+
+//     // Collect follower stats
+//     const stats = await Promise.all(
+//         follows.map(async (followee) => {
+//             const followersResponse = await client.api.app.bsky.graph.getFollowers({
+//                 actor: followee.did,
+//             });
+//             const followers = followersResponse.data.followers || [];
+//             const mutualFollowers = followers.filter((f) =>
+//                 follows.some((f2) => f2.did === f.did)
+//             );
+//             return {
+//                 handle: followee.handle,
+//                 mutuals: mutualFollowers.length,
+//                 totalFollowers: followers.length,
+//             };
+//         })
+//     );
+
+//     // Filter for bottom quartile of total followers
+//     const sortedByFollowers = stats.sort((a, b) => a.totalFollowers - b.totalFollowers);
+//     const followerThreshold = Math.ceil(sortedByFollowers.length * 0.25);
+//     const bottomQuartile = sortedByFollowers.slice(0, followerThreshold);
+
+//     // Filter for top quartile of mutual followers
+//     const sortedByMutuals = bottomQuartile.sort((a, b) => b.mutuals - a.mutuals);
+//     const mutualsThreshold = Math.ceil(sortedByMutuals.length * 0.25);
+//     const topMutuals = sortedByMutuals.slice(0, mutualsThreshold);
+
+//     // Fetch posts by these users
+//     const posts: any[] = [];
+//     for (const user of topMutuals) {
+//         const timelineResponse = await client.api.app.bsky.feed.getAuthorFeed({
+//             actor: user.handle,
+//         });
+//         posts.push(...(timelineResponse.data.feed || []));
+//     }
+
+//     console.log(posts); // Replace with code to output or use the feed
+// };
+
+// ANOTHER
+
+import AtpAgent from '@atproto/api';
+
+export const createCustomFeed = async (client: AtpAgent): Promise<any[]> => {
+    // Validate session
+    const session = client.session;
+    if (!session) {
+        throw new Error('Session is not initialized. Please log in first.');
+    }
+
+    const actor = session.did;
+
+    // Fetch the current user's follows
+    const followsResponse = await client.api.app.bsky.graph.getFollows({
+        actor,
+    });
+
+    const follows = followsResponse.data.follows || [];
+
+    // Collect follower stats
+    const stats = await Promise.all(
+        follows.map(async (followee) => {
+            const followersResponse = await client.api.app.bsky.graph.getFollowers({
+                actor: followee.did,
+            });
+            const followers = followersResponse.data.followers || [];
+            const mutualFollowers = followers.filter((f) =>
+                follows.some((f2) => f2.did === f.did)
+            );
+            return {
+                handle: followee.handle,
+                mutuals: mutualFollowers.length,
+                totalFollowers: followers.length,
+            };
+        })
+    );
+
+    // Filter for bottom quartile of total followers
+    const sortedByFollowers = stats.sort((a, b) => a.totalFollowers - b.totalFollowers);
+    const followerThreshold = Math.ceil(sortedByFollowers.length * 0.25);
+    const bottomQuartile = sortedByFollowers.slice(0, followerThreshold);
+
+    // Filter for top quartile of mutual followers
+    const sortedByMutuals = bottomQuartile.sort((a, b) => b.mutuals - a.mutuals);
+    const mutualsThreshold = Math.ceil(sortedByMutuals.length * 0.25);
+    const topMutuals = sortedByMutuals.slice(0, mutualsThreshold);
+
+    // Fetch posts by these users
+    const posts: any[] = [];
+    for (const user of topMutuals) {
+        const timelineResponse = await client.api.app.bsky.feed.getAuthorFeed({
+            actor: user.handle,
+        });
+        posts.push(...(timelineResponse.data.feed || []));
+    }
+
+    console.log('✅ Custom feed generated:', posts);
+    return posts; // Return the feed data for further use
+};
